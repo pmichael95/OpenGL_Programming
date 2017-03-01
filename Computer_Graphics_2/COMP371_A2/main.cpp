@@ -188,13 +188,10 @@ int main()
 		ourShader.Use();
 		// --- CAMERA TRANSFORMATION --- //
 		// Camera/View transformation
-		//view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 		view = glm::lookAt(glm::vec3(0.0f, 0.0f, myCamera.z), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		view = glm::rotate(view, step.x * 1.0f, glm::vec3(1.0f, 0.0f, 0.0f));
 		view = glm::rotate(view, step.z * 1.0f, glm::vec3(0.0f, 0.0f, 1.0f));
 		// Projection 
-		//projection = glm::perspective(fov, (GLfloat)WIDTH / (GLfloat)HEIGHT, 0.1f, 100.0f); // <-- USE THIS FOR A1
-		//projection = glm::ortho(0.0f, (float)WIDTH, (float)HEIGHT, 0.0f, 0.0f, 100.0f); // <-- USE THIS FOR A2
 		chooseDisplayMode();
 		// Get the uniform locations
 		modelLoc = glGetUniformLocation(ourShader.Program, "model");
@@ -378,7 +375,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 			// Handle the rotation drawing now
 			pressed_enter[0] = true; // Signal that now we want to do the spline (pressed enter the first time)
 			pressed_enter[1] = true; // Signal that the next step is to draw the mesh when enter is pressed
-									 // --- NEED TO POPULATE CPOINTS WITH THE SPLINE POINTS --- //
+			// --- NEED TO POPULATE CPOINTS WITH THE SPLINE POINTS --- //
 			do_Spline(true);
 			// ------------------------------------------------------ //
 		}
@@ -388,7 +385,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 		else if (toupper(choice) == 'T' && !pressed_enter[0]) {
 			pressed_enter[0] = true; // Signal that now we want to do the spline (pressed enter the first time)
 			pressed_enter[1] = true; // Signal that the next step is to draw the trajectory points (when we press enter)
-									 // --- NEED TO POPULATE CPOINTS WITH THE SPLINE POINTS --- //
+			// --- NEED TO POPULATE CPOINTS WITH THE SPLINE POINTS --- //
 			do_Spline(true);
 			// ------------------------------------------------------ //
 		}
@@ -400,7 +397,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 		else if (toupper(choice) == 'T' && pressed_enter[2]) {
 			pressed_enter[2] = false;
 			pressed_enter[3] = true; // Signal that next step is to write to file
-									 // --- NEED TO POPULATE TPOINTS WITH THE SPLINE POINTS --- //
+			// --- NEED TO POPULATE TPOINTS WITH THE SPLINE POINTS --- //
 			do_Spline(false);
 			// ------------------------------------------------------ //
 		}
@@ -639,8 +636,8 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 			cpoints.push_back(ypos / HEIGHT); // The z-val is the y-val
 			cout << ypos / HEIGHT << endl; // Test to get the value
 
-										   // -- NEED TO DRAW A POINT AT EACH CALL --//
-										   // Add actual values of window dimension relatives to controlpoints
+			// -- NEED TO DRAW A POINT AT EACH CALL --//
+			// Add actual values of window dimension relatives to controlpoints
 			controlpoints.push_back(xpos);
 			controlpoints.push_back(ypos);
 			controlpoints.push_back(0.0f);
