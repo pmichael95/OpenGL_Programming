@@ -25,7 +25,6 @@ If you wish to modify the name of the input file, please change it in the .cpp f
 Upon launch, the application will place a camera on the Z-axis.
 Its 'up' value is on the Y-axis, and it is pointing towards the origin.
 As such, the shapes are generally drawn in such a way that you will be looking at them from above.
-If a shape is not shown immediately, tap the UP arrow key to see it.
 Below are controls detailed for convenience.
 
 / 3.1 \ - Arrow Keys
@@ -44,8 +43,8 @@ L: Lines
 F: Filled (default)
 
 // 4 \\ - FINAL REMARKS
-The application fully supports translational shapes. 
-It is also functioning for the cylinder rotational shape provided with this package.
+The application fully supports translational shapes as well as rotational shapes.
+Some sample files are provided, but feel free to create your own!
 
 Thank you for reading!
 Enjoy :)

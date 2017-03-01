@@ -13,15 +13,15 @@
 
 // GLEW
 #define GLEW_STATIC
-#include <glew.h>
+#include <GL/glew.h>
 
 // GLFW
-#include <glfw3.h>
+#include <GLFW/glfw3.h>
 
 // GLM Mathemtics
-#include <glm.hpp>
-#include <gtc/matrix_transform.hpp>
-#include <gtc/type_ptr.hpp>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 // Other includes
 #include "Shader.h"
@@ -37,6 +37,8 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void Do_Movement();
+void doTrans(vector<glm::vec3> &points, vector<glm::vec3> &trajectory, vector<GLfloat> &draw_verts, vector<GLuint> &indices, int &width, int &height);
+void doRotate(vector<glm::vec3> &points, vector<GLuint> &indices, int &spans, vector<GLfloat> &draw_verts);
 
 // View and projection matrices (x,y,z,w)
 glm::mat4 view;
@@ -66,7 +68,7 @@ bool keys[1024];
 GLfloat deltaTime = 0.0f;	// Time between current frame and last frame
 GLfloat lastFrame = 0.0f;  	// Time of last frame
 
-							// The MAIN function, from here we start the application and run the game loop
+// The MAIN function, from here we start the application and run the game loop
 int main()
 {
 	// Init GLFW
@@ -103,13 +105,9 @@ int main()
 
 	// Setup some OpenGL options
 	glEnable(GL_DEPTH_TEST); // Depth feeling
-	//glEnable(GL_CULL_FACE); // Cull back faces
 
 	// Build and compile our shader program
 	Shader ourShader("vertex.shader", "fragment.shader");
-	//*** NOTE: FOR 3D MODELS NEED TO EDIT THE VERTEX SHADER TO HAVE:
-	// gl_Position = projection * view * model * vec4(position, 1.0f);
-
 
 	// Setup and call for input handling
 	vector<glm::vec3> points, trajectory; // Vec3 objects stored for our pts and trajectories
@@ -135,111 +133,13 @@ int main()
 
 	// ------- BEGIN TRANSLATIONAL SHAPES -------//
 	if (!empty) {
-		// Output trajectory curve
-		cout << "\n=== TRAJECTORY CURVE ===\n";
-
-		for (int i = 0; i < trajectory.size(); i++) {
-			cout << "Index " << i << "; content = " << trajectory[i].x << " " << trajectory[i].y << " " << trajectory[i].z << endl;
-		}
-
-		// INDICES
-		GLuint heightcalc; // Result of multiplying the height with our i value 
-		for (int i = 0; i < trajectory.size(); i++) {
-			// Outer i loop to go through the trajectory curve
-			for (int j = 1; j < points.size(); j++) {
-				// Inner j loop to go through with the points based on the trajectory (a point for all the trajectory)
-				heightcalc = height * i; // Calculate the height to add
-				if (i < (trajectory.size() - 1)) { // Error if we try to go over bounds
-					indices.push_back((j - 1) + heightcalc); // This will pass 0 at first run [CASE OF MESH]
-					indices.push_back(j + heightcalc); // This will pass 1 at first run [CASE OF MESH]
-					indices.push_back((j - 1) + height + heightcalc); // This will pass 4 at first run [CASE OF MESH]
-					indices.push_back(j + heightcalc); // This will pass 1 at first run [CASE OF MESH]
-					indices.push_back(j + height + heightcalc); // This will pass 5 at first run [CASE OF MESH]
-					indices.push_back((j - 1) + height + heightcalc); // This will pass 4 at first run [CASE OF MESH]
-				}
-			}
-		}
-
-		// OUTPUT INDICES
-		cout << "\n==== INDICES ====\n" << endl;
-		for (int i = 0; i < indices.size(); i += 3) {
-			cout << indices[i] << " " << indices[i + 1] << " " << indices[i + 2] << endl;
-		}
-
-		// BEGIN TRANSLATION FOR THE SHAPE
-		glm::vec3 tempvec;
-		for (int i = 0; i < trajectory.size(); i++) {
-			//tempvec = trajectory[i + 1] - trajectory[i];
-			tempvec = trajectory[i] - points.back();
-			// Now need to multiply this to the appropriate point in the points vector
-			for (int j = 0; j < points.size(); j++) {
-				glm::vec4 tv4;
-				glm::mat4 trans; // Identity matrix
-				trans = glm::translate(trans, tempvec);
-				tv4 = trans * glm::vec4(points[j], 1.0f);
-				draw_verts.push_back(ceil(tv4.x * 100) / 100);
-				draw_verts.push_back(ceil(tv4.y * 100) / 100);
-				draw_verts.push_back(ceil(tv4.z * 100) / 100);
-			}
-		}
-
-		// OUTPUT VERTICES
-		cout << "\n==== Vertices ===== \n" << endl;
-		for (int i = 0; i < draw_verts.size(); i += 3) {
-			//cout << "draw_verts at i = " << i << " gives: " << draw_verts[i] << endl;
-			cout << draw_verts[i] << " " << draw_verts[i + 1] << " " << draw_verts[i + 2] << endl;
-		}
+		doTrans(points, trajectory, draw_verts, indices, width, height);
 	}
 	// ------- END TRANSLATIONAL SHAPES -------//
 	////////////////////////////////////////////
 	// ------- BEGIN ROTATIONAL SHAPES ------//
 	else {
-		// Find the indices
-		int num_sides = points.size() * 3 * (spans - 1); // # of vertex sets * 3 to form a triangle * # of spans - 1 , result is 54 for cylinder
-		for (int i = 1; i <= (num_sides / 3); i+=2) {
-			indices.push_back((i + points.size() - 1) - 1);
-			indices.push_back((i + points.size() - 1));
-			indices.push_back((i + points.size() - 1) + 1);
-			indices.push_back((i + points.size() - 1) + 1);
-			indices.push_back((i + points.size() - 1));
-			indices.push_back((i + points.size() - 1) + 2);
-		}
-
-		// Output the indices
-		cout << "==== INDICES ====\n" << endl;
-		for (int i = 0; i < indices.size(); i+=3) {
-			cout << indices[i] << " " << indices[i + 1] << " " << indices[i + 2] << endl;
-		}
-		
-		cout << "# of indices: " << indices.size() << endl; // Output # of total indices
-
-		// Put the points initially into draw_verts
-		for (int i = 0; i < points.size(); i++) {
-			draw_verts.push_back(points[i].x);
-			draw_verts.push_back(points[i].y);
-			draw_verts.push_back(points[i].z);
-		}
-
-		// Begin the rotation
-		glm::mat4 trans; // Identity matrix
-		for (int i = 0; i < spans; i++) {
-			glm::vec4 tv4;
-			trans = glm::rotate(trans, glm::radians((GLfloat)(360 / (spans - 1))), glm::vec3(0.0f, 0.0f, 1.0f)); // Perform rotation
-			for (int j = 0; j < points.size(); j++) {
-				tv4 = trans * glm::vec4(points[j], 1.0f);
-				draw_verts.push_back(ceil(tv4.x * 100) / 100);
-				draw_verts.push_back(ceil(tv4.y * 100) / 100);
-				draw_verts.push_back(ceil(tv4.z * 100) / 100);
-			}
-		}
-
-		// Output vertices
-		cout << "\n==== VERTICES ====\n" << endl;
-		for (int i = 0; i < draw_verts.size(); i+=3) {
-			cout << draw_verts[i] << " " << draw_verts[i + 1] << " " << draw_verts[i + 2] << endl;
-		}
-
-		cout << "# of vertices: " << draw_verts.size() << endl; // Output # of total vertices
+		doRotate(points, indices, spans, draw_verts);
 	}
 	// ------- END ROTATIONAL SHAPES ------//
 
@@ -291,15 +191,17 @@ int main()
 		view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 		// Projection 
 		projection = glm::perspective(fov, (GLfloat)WIDTH / (GLfloat)HEIGHT, 0.1f, 100.0f);
+
 		// Get the uniform locations
 		GLint modelLoc = glGetUniformLocation(ourShader.Program, "model");
 		GLint viewLoc = glGetUniformLocation(ourShader.Program, "view");
 		GLint projLoc = glGetUniformLocation(ourShader.Program, "projection");
+
 		// Pass the matrices to the shader
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
 		glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
-		
+
 		// Bind VAO
 		glBindVertexArray(VAO);
 
@@ -309,19 +211,16 @@ int main()
 		// Swap the buffers
 		glfwSwapBuffers(window);
 	}
-
 	// Properly de-allocate all resources once they've outlived their purpose
 	glDeleteVertexArrays(1, &VAO);
 	glDeleteBuffers(1, &VBO);
 	glDeleteBuffers(1, &EBO);
-
 	// Terminate GLFW, clearing any resources allocated by GLFW.
 	glfwTerminate();
 	return 0;
 }
 
 void window_size_callback(GLFWwindow* window, int width, int height) {
-	//cout << "Window event called." << endl;
 	// Set the new width and height of the window
 	WIDTH = width;
 	HEIGHT = height;
@@ -371,8 +270,8 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	}
 }
 
-bool firstMouse = true; // Track if it's the first time mouse enters the window
-
+// Mouse callback
+bool firstMouse = true;
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
 	if (firstMouse)
@@ -408,7 +307,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 
 }
 
-// Handle scrolling in and out of shape
+// Scroll wheel control
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
 	if (fov >= 1.0f && fov <= 45.0f)
@@ -417,4 +316,117 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 		fov = 1.0f;
 	if (fov >= 45.0f)
 		fov = 45.0f;
+}
+
+// Handle the translation
+void doTrans(vector<glm::vec3> &points, vector<glm::vec3> &trajectory, vector<GLfloat> &draw_verts, vector<GLuint> &indices, int &width, int &height) {
+	// Output trajectory curve
+	cout << "\n=== TRAJECTORY CURVE ===\n";
+	cout << trajectory.size();
+	cout << points.size();
+
+	for (int i = 0; i < trajectory.size(); i++) {
+		cout << "Index " << i << "; content = " << trajectory[i].x << " " << trajectory[i].y << " " << trajectory[i].z << endl;
+	}
+
+	// INDICES
+	GLuint heightcalc; // Result of multiplying the height with our i value 
+	for (int i = 0; i < trajectory.size(); i++) {
+		// Outer i loop to go through the trajectory curve
+		for (int j = 1; j < points.size(); j++) {
+			// Inner j loop to go through with the points based on the trajectory (a point for all the trajectory)
+			heightcalc = height * i; // Calculate the height to add
+			if (i < (trajectory.size() - 1)) { // Error if we try to go over bounds
+				indices.push_back((j - 1) + heightcalc); // This will pass 0 at first run [CASE OF MESH]
+				indices.push_back(j + heightcalc); // This will pass 1 at first run [CASE OF MESH]
+				indices.push_back((j - 1) + height + heightcalc); // This will pass 4 at first run [CASE OF MESH]
+				indices.push_back(j + heightcalc); // This will pass 1 at first run [CASE OF MESH]
+				indices.push_back(j + height + heightcalc); // This will pass 5 at first run [CASE OF MESH]
+				indices.push_back((j - 1) + height + heightcalc); // This will pass 4 at first run [CASE OF MESH]
+			}
+		}
+	}
+
+	// OUTPUT INDICES
+	cout << "\n==== INDICES ====\n" << endl;
+	for (int i = 0; i < indices.size(); i += 3) {
+		cout << indices[i] << " " << indices[i + 1] << " " << indices[i + 2] << endl;
+	}
+	cout << "# of indices: " << indices.size() << endl;
+
+	// BEGIN TRANSLATION FOR THE SHAPE
+	glm::vec3 tempvec;
+	for (int i = 0; i < trajectory.size(); i++) {
+		//tempvec = trajectory[i + 1] - trajectory[i];
+		tempvec = trajectory[i] - points.back();
+		// Now need to multiply this to the appropriate point in the points vector
+		for (int j = 0; j < points.size(); j++) {
+			glm::vec4 tv4;
+			glm::mat4 trans; // Identity matrix
+			trans = glm::translate(trans, tempvec);
+			tv4 = trans * glm::vec4(points[j], 1.0f);
+			draw_verts.push_back(ceil(tv4.x * 100) / 100);
+			draw_verts.push_back(ceil(tv4.y * 100) / 100);
+			draw_verts.push_back(ceil(tv4.z * 100) / 100);
+		}
+	}
+
+	// OUTPUT VERTICES
+	cout << "\n==== Vertices ===== \n" << endl;
+	for (int i = 0; i < draw_verts.size(); i += 3) {
+		//cout << "draw_verts at i = " << i << " gives: " << draw_verts[i] << endl;
+		cout << draw_verts[i] << " " << draw_verts[i + 1] << " " << draw_verts[i + 2] << endl;
+	}
+	cout << "# of vertices: " << draw_verts.size() << endl;
+}
+
+// Handle the rotation
+void doRotate(vector<glm::vec3> &points, vector<GLuint> &indices, int &spans, vector<GLfloat> &draw_verts) {
+	// Put the points initially into draw_verts
+	vector<GLfloat> verts;
+	for (int i = 0; i < points.size(); i++) {
+		draw_verts.push_back(points[i].x);
+		draw_verts.push_back(points[i].y);
+		draw_verts.push_back(points[i].z);
+		verts.push_back(points[i].x);
+		verts.push_back(points[i].y);
+		verts.push_back(points[i].z);
+	}
+
+	float rotateAdd = (2 * glm::pi<float>()) / spans;
+	for (int i = 1; i <= spans; i++) //rotate using sin & cos and populate vertices array
+	{
+		GLfloat inVal;
+		GLfloat multVal;
+		for (int j = 0; j < verts.size(); j++)
+		{
+			if (j % 3 == 0)
+			{
+				multVal = verts[j];
+				inVal = multVal * cos(rotateAdd*i); //move x value
+			}
+			else if (j % 3 == 1)
+			{
+				inVal = multVal * sin(rotateAdd*i); //move y value
+			}
+			else if (j % 3 == 2)
+			{
+				inVal = verts[j]; //z values do not move
+			}
+			draw_verts.push_back(inVal); //add to vertices array
+		}
+	}
+
+	// FIND INDICES
+	for (int i = 0; i < (spans * points.size()) - 1; i++) {
+		if (i % points.size() != points.size() - 1) { // Check so we don't go out of bounds
+			indices.push_back(i);
+			indices.push_back(i + 1);
+			indices.push_back(i + points.size());
+			indices.push_back(i + 1);
+			indices.push_back(i + points.size());
+			indices.push_back(i + 1 + points.size());
+		}
+	}
+	cout << "# of vertices: " << draw_verts.size() << endl;
 }
